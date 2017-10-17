@@ -1,0 +1,3 @@
+".\Objects\REPENTINA.obj" 
+TO ".\Objects\REPENTINA" 
+PRINT(".\Listings\REPENTINA.m51") RAMSIZE(256) 
