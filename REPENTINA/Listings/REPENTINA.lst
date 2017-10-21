@@ -1,4 +1,4 @@
-A51 MACRO ASSEMBLER  REPENTINA                                                            10/17/2017 08:34:50 PAGE     1
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     1
 
 
 MACRO ASSEMBLER A51 V8.2.5.0
@@ -52,335 +52,473 @@ LOC  OBJ            LINE     SOURCE
 
   0032                22                     AS              EQU             32H;
 
-  0033                23                     SWITCH  EQU             33H; SABER SI EL SWITCH ESTA EN 0 O 1 
+  00B4                23                     RA_SW   EQU             P3.4  ; SABER SI MOSTRAMOS EL RELOJ O LA ALARMA
 
-                      24     ;*********************************************
+  00B0                24                     BUZZER  EQU             P3.0  ; PUERTO DEL BUZZER
 
-                      25     ;   VECTORES DEL PROGRAMA                                *
+  00B2                25                     B_MM    EQU             P3.2  ;BUTTON DE MINUTOS
 
-                      26     ;*********************************************
+  00B3                26                     B_HH    EQU             P3.3  ;BUTTON DE HORAS
 
-0000                  27                                     ORG             0000H
+                      27                             
 
-0000 0200B8           28                                     LJMP    PRINCIPAL
+                      28     ;*********************************************
 
-000B                  29                                     ORG             000BH
+                      29     ;   VECTORES DEL PROGRAMA                            *
 
-000B 02001E           30                                     LJMP    RELOJ
+                      30     ;*********************************************
 
-001B                  31                                     ORG     001BH
+0000                  31                                     ORG             0000H
 
-001B 020059           32                                     LJMP    TRANSISTORES
+0000 02015A           32                                     LJMP    PRINCIPAL
 
-                      33                                     
+0003                  33                                     ORG             0003H
 
-                      34     ;*********************************************
+0003 020027           34                                     LJMP    BUTTON_MM
 
-                      35     ;   INTERRUPCIÓN DE RELOJ T0                 *
+0013                  35                                     ORG     0013H
 
-                      36     ;*********************************************
+0013 020049           36                                     LJMP    BUTTON_HH
 
-001E 0523             37     RELOJ:                  INC             COUNT                                   ; AUMENTAMO
-                             S COUNT
+000B                  37                                     ORG             000BH
 
-0020 758C63           38                                     MOV     TH0,#63H                                ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR0 EN H
+000B 02006B           38                                     LJMP    RELOJ
 
-0023 758AC0           39                                     MOV     TL0,#0C0H
+001B                  39                                     ORG     001BH
 
-0026 C28D             40                                     CLR             TF0                                        
-                                  ; LIMPIAR DESBORDAMIENTO/FLAG
+001B 0200AA           40                                     LJMP    TRANSISTORES
 
-0028 A923             41                                     MOV     R1, COUNT
+                      41                                     
 
-002A B9322B           42                                     CJNE    R1, #50D, FINALRELOJ    ; REVISAMOS SI YA LLEGUÉ A 
-                             20
+                      42     ;*********************************************
 
-002D 0522             43                                     INC     SS                                              ; E
-                             L COUNT YA FUE 20, SE AUMENTA 1
+                      43     ;   DEBOUNCER                                                    *
 
-002F 752300           44                                     MOV     COUNT, #00H                             ; SE REINIC
-                             IA EL COUNT
+                      44     ;*********************************************
 
-0032 A922             45                                     MOV     R1, SS
+                      45     
 
-0034 B93C21           46                                     CJNE    R1, #60D, FINALRELOJ    ; SI HAY 60 SEGUNDOS
+001E 7F1E             46     DEBOUNCE_DELAY: MOV R7,#30D
 
-0037 0521             47                                     INC     MM                                              ; I
-                             NCREMENTO MM
+                      47     
 
-0039 752200           48                                     MOV     SS, #00H                                ; SE REINIC
-                             IA SS        
+0020 7EFF             48     LL_DEBOUNCE_DELAY:      MOV R6,#0FFH
 
-003C A921             49                                     MOV     R1, MM
+0022 DEFE             49                                             DJNZ R6,$
 
-A51 MACRO ASSEMBLER  REPENTINA                                                            10/17/2017 08:34:50 PAGE     2
+0024 DFFA             50                                             DJNZ R7,LL_DEBOUNCE_DELAY
 
-003E B93C0D           50                                     CJNE    R1, #60D, COMPALARMA    ; SI HAY 60 MINUTOS
+0026 22               51                                             RET
 
-0041 0520             51                                     INC     HH                                              ; I
-                             NCREMENTO HH
+                      52                                             
 
-0043 752100           52                                     MOV     MM, #00H                                ; SE REINIC
-                             IA MM
+                      53     ;*********************************************
 
-0046 A920             53                                     MOV     R1, HH
+                      54     ;   INTERRUPCION EXT0 (MINUTOS)              *
 
-0048 B91803           54                                     CJNE    R1, #24D, COMPALARMA            ; YA PASÓ UN DÍA
+                      55     ;*********************************************
 
-004B 752000           55                                     MOV     HH, #00H                                ; LAS HORAS
-                              SE PONE EN 0
+0027 111E             56     BUTTON_MM:              ACALL   DEBOUNCE_DELAY                  ;ESPERA 30 MILISEGUNDOS
 
-004E E531             56     COMPALARMA:             MOV             A, AM
+0029 20B219           57                                     JB              B_MM,FINALMM                    ;COMPARAR S
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     2
 
-0050 B52105           57                                     CJNE    A, MM, FINALRELOJ
+                             I EL BOTON SE ESTA SOLTANDO 
 
-0053 E530             58                                     MOV             A, AH
+                      58                                     
 
-0055 B52000           59                                     CJNE    A, HH, FINALRELOJ
+002C 20B40C           59     COMPARATORM:    JB              RA_SW, ALARMINC_MM              
 
-                      60                                     
+002F 0521             60                                     INC             MM
 
-0058 32               61     FINALRELOJ:             RETI
+0031 E521             61                                     MOV     A, MM
 
-                      62     
+0033 B43C0F           62                                     CJNE    A, #60D, FINALMM
 
-                      63                     
+0036 752100           63                                     MOV             MM, #00H
 
-                      64     ;*********************************************
+0039 800A             64                                     SJMP    FINALMM
 
-                      65     ;   INTERRUPCIÓN DE TRANSISTORES  T1         *
+                      65     
 
-                      66     ;*********************************************
+003B 0531             66     ALARMINC_MM:    INC     AM
 
-                      67     
+003D E531             67                                     MOV             A, AM
 
-                      68     ; AL INICIO VERIFICAMOS SI EL SWITCH ESTÁ EN RELOJ O EN ALARMA. 
+003F B43C03           68                                     CJNE    A, #60D, FINALMM
 
-                      69     ;DEPENDIENDO DE ESO LOS REGISTROS DE R3 A R5 SE IRÁN CAMBIANDO CON LOS DATOS
+0042 753100           69                                     MOV             AM, #00H
 
-0059 E533             70     TRANSISTORES:   MOV             A, SWITCH
+                      70                                     
 
-005B B40008           71                                     CJNE    A, #0D, ALARMADATA      ; PONER EN LOS REGISTROS DA
-                             TOS DE LA ALARMA O RELOJ
+0045 30B2FD           71     FINALMM:                JNB             B_MM, $                         ;ESPERA A LA SIGUIE
+                             NTE INTERRUPCIÓN
 
-005E AB22             72                                     MOV     R3, SS                                  ; MOVER LOS
-                              SS AL R3
+0048 32               72                                     RETI
 
-0060 AC21             73                                     MOV     R4, MM                                  ; MOVER LOS
-                              MM AL R4
+                      73     
 
-0062 AD20             74                                     MOV             R5, HH                                  ; M
-                             OVER LAS HH AL R5
+                      74     
 
-0064 8006             75                                     JMP     CONTINUE
+                      75                                             
 
-0066 AB32             76     ALARMADATA:             MOV     R3, AS                                  ; MOVER LOS AS AL R
-                             3
+                      76     ;*********************************************
 
-0068 AC31             77                                     MOV             R4, AM                                  ; M
-                             OVER LOS AM AL R4
+                      77     ;         INTERRUPCION EXT1 (HORAS)          *
 
-006A AD30             78                                     MOV             R5, AH                                  ; M
-                             OVER LOS AH AL R5
+                      78     ;*********************************************
 
-006C C28F             79     CONTINUE:               CLR             TF1                                             ; L
-                             IMPIAR FLAG
+0049 111E             79     BUTTON_HH:              ACALL   DEBOUNCE_DELAY          ;ESPERA 30 MILISEGUNDOS 
 
-006E 758D10           80                                     MOV     TH1,#10H                                ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR1 EN H
+004B 20B319           80                                     JB              B_HH,FINALHH            ;COMPARAR SI EL BOT
+                             ON SE ESTA SOLTANDO
 
-0071 758B60           81                                     MOV     TL1,#60H
+                      81                                     
 
-0074 852490           82                                     MOV     P1, TRANS                               ;MANDAR BAR
-                             RIDO A PUERTO 0A
+004E 20B40C           82     COMPARATORH:    JB              RA_SW, ALARMINC_HH              
 
-0077 75F00A           83                                     MOV     B, #10D                                 ; B = 10
+0051 0520             83                                     INC             HH
 
-007A AA24             84                                     MOV     R2, TRANS
+0053 E520             84                                     MOV     A, HH
 
-007C BAFE03           85     SEG1:                   CJNE    R2, #11111110B, SEG2    ; TRANSISTOR EN 1
+0055 B4180F           85                                     CJNE    A, #24D, FINALHH
 
-007F EB               86                                     MOV     A, R3                                   ; MOVER SS 
-                             AL ACUMULADOR 
+0058 752000           86                                     MOV             HH, #00H
 
-0080 801E             87                                     SJMP    LOWTRANS                                ; TRANSITOR
-                              LOW
+005B 800A             87                                     SJMP    FINALHH
 
-0082 BAFD03           88     SEG2:                   CJNE    R2, #11111101B, SEG3    ; TRANSISTOR EN 2 
+                      88     
 
-0085 EB               89                                     MOV     A, R3                                   ; MOVER SS 
-                             AL ACUMULADOR 
+005D 0530             89     ALARMINC_HH:    INC     AH
 
-0086 801D             90                                     SJMP    HIGHTRANS                               ; TRANSITOR
-                              LOW
+005F E530             90                                     MOV             A, AH
 
-0088 BAFB03           91     SEG3:                   CJNE    R2, #11111011B, SEG4    ; TRANSISTOR EN 3 
+0061 B41803           91                                     CJNE    A, #24D, FINALHH
 
-008B EC               92                                     MOV     A, R4                                   ; MOVER SS 
-                             AL ACUMULADOR 
+0064 753000           92                                     MOV             AH, #00H
 
-008C 8012             93                                     SJMP    LOWTRANS                                ; TRANSITOR
-                              LOW
+                      93                                             
 
-008E BAF703           94     SEG4:                   CJNE    R2, #11110111B, SEG5    ; TRANSISTOR EN 4 
+0067 30B3FD           94     FINALHH:                JNB     B_HH, $                                 ;ESPERA A LA SIGUIE
+                             NTE INTERRUPCIÓN
 
-0091 EC               95                                     MOV     A, R4                                   ; MOVER SS 
-                             AL ACUMULADOR 
+006A 32               95                                     RETI
 
-A51 MACRO ASSEMBLER  REPENTINA                                                            10/17/2017 08:34:50 PAGE     3
+                      96     
 
-0092 8011             96                                     SJMP    HIGHTRANS                               ; TRANSITOR
-                              LOW
+                      97     ;*********************************************
 
-0094 BAEF03           97     SEG5:                   CJNE    R2, #11101111B, SEG6    ; TRANSISTOR EN 5 
+                      98     ;   INTERRUPCIÓN DE RELOJ T0                 *
 
-0097 ED               98                                     MOV     A, R5                                   ; MOVER SS 
-                             AL ACUMULADOR 
+                      99     ;*********************************************
 
-0098 8006             99                                     SJMP    LOWTRANS                                ; TRANSITOR
-                              LOW
+006B 0523            100     RELOJ:                  INC             COUNT                                   ;AUMENTAMOS
+                              COUNT
 
-009A BADFDF          100     SEG6:                   CJNE    R2, #11011111B, SEG1    ; TRANSISTOR EN 6
+006D 758C3C          101                                     MOV     TH0,#HIGH(-49999)               ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR0 EN H
 
-009D ED              101                                     MOV     A, R5                                   ; MOVER SS 
-                             AL ACUMULADOR 
+0070 758AB1          102                                     MOV     TL0,#LOW(-49999)                ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR0 EN L
 
-009E 8005            102                                     SJMP    HIGHTRANS                               ; TRANSITOR
-                              LOW
+0073 C28D            103                                     CLR             TF0                                        
+                                  ;LIMPIAR DESBORDAMIENTO/FLAG
 
-                     103                             
+0075 A923            104                                     MOV     R1, COUNT
 
-00A0 84              104     LOWTRANS:               DIV     AB                                              ; DIVIDIR E
-                             NTRE 10 LO QUE HAY
+0077 B9142F          105                                     CJNE    R1, #20D, FINALRELOJ    ;REVISAMOS SI YA LLEGUÉ A 2
+                             0 CUENTAS
 
-00A1 E5F0            105                                     MOV     A, B                                    ; MOVER EL 
-                             RESIDUO A A
+007A 0522            106                                     INC     SS                                              ;EL
+                              COUNT YA FUE 200, SE AUMENTA 1
 
-00A3 8001            106                                     SJMP    GOTABLE                                 ; IR A HIHG
+007C 752300          107                                     MOV     COUNT, #00H                             ;SE REINICI
+                             A EL COUNT
 
-00A5 84              107     HIGHTRANS:              DIV     AB                                              ; DIVIDIR 
+007F A922            108                                     MOV     R1, SS
 
-00A6 7926            108     GOTABLE:                MOV     R1, #26H
+0081 B93C25          109                                     CJNE    R1, #60D, FINALRELOJ    ;SI HAY 60 SEGUNDOS
 
-00A8 29              109                                     ADD             A, R1                                   ; E
-                             NCONTRAR A QUE DIRECCIÓN BUSCAR
+0084 D2B0            110                                     SETB    BUZZER                                  ;RESET AL B
+                             UZZER
 
-00A9 F9              110                                     MOV     R1, A
+0086 0521            111                                     INC     MM                                              ;IN
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     3
 
-00AA E7              111                                     MOV     A, @R1                                  ; BUSCAR EN
-                              LA TABLA
+                             CREMENTO MM
 
-00AB F5A0            112                                     MOV             P2, A                                   ; P
-                             ASAR ACC AL P2
+0088 752200          112                                     MOV     SS, #00H                                ;SE REINICI
+                             A SS 
 
-00AD E524            113                                     MOV     A, TRANS                                ; TRANSISTO
-                             R AL ACC
+008B A921            113                                     MOV     R1, MM
 
-00AF B4DF02          114                                     CJNE    A, #11011111B, RLFUN    ; TENEMOS QUE HACER TRES MO
-                             VIMIENTOS
+008D B93C0D          114                                     CJNE    R1, #60D, COMPALARMA    ;SI HAY 60 MINUTOS
 
-00B2 23              115                                     RL              A                                          
-                                  ; MOVER A LA IZQUIERDA
+0090 0520            115                                     INC     HH                                              ;IN
+                             CREMENTO HH
 
-00B3 23              116                                     RL              A                                          
-                                  ; MOVER A LA IZQUIERDA
+0092 752100          116                                     MOV     MM, #00H                                ;SE REINICI
+                             A MM
 
-00B4 23              117     RLFUN:                  RL              A                                               ; M
-                             OVER A LA IZQUIERDA
+0095 A920            117                                     MOV     R1, HH
 
-00B5 F524            118                                     MOV     TRANS, A                                ; ACC AL TR
-                             ANS
+0097 B91803          118                                     CJNE    R1, #24D, COMPALARMA    ;YA PASÓ UN DÍA
 
-00B7 32              119                                     RETI
+009A 752000          119                                     MOV     HH, #00H                                ;LAS HORAS 
+                             SE PONE EN 0
 
-                     120     ;*********************************************
+009D E531            120     COMPALARMA:             MOV             A, AM
 
-                     121     ;   INTERRUPCIÓN                         *
+009F B52107          121                                     CJNE    A, MM, FINALRELOJ
 
-                     122     ;*********************************************
+00A2 E530            122                                     MOV             A, AH
 
-                     123     ;*********************************************
+00A4 B52002          123                                     CJNE    A, HH, FINALRELOJ
 
-                     124     ;   SUBRUTINA SUMADOR HH                         *
+00A7 C2B0            124                                     CLR     BUZZER
 
-                     125     ;*********************************************
+00A9 32              125     FINALRELOJ:             RETI
 
-                     126     ;*********************************************
+                     126     
 
-                     127     ;   PRINCIPAL                                            *
+                     127                     
 
                      128     ;*********************************************
 
-00B8 75200C          129     PRINCIPAL:              MOV     HH,#12D                ; INICIAMOS VALORES EN 0 Y 12 PARA L
-                             AS HORAS
+                     129     ;   INTERRUPCIÓN DE TRANSISTORES  T1         *
 
-00BB 752100          130                                     MOV             MM,#00H
+                     130     ;*********************************************
 
-00BE 752200          131                                     MOV     SS,#00H
+                     131     
 
-00C1 753025          132                                     MOV             AH, #25H                                ; I
+                     132     ; AL INICIO VERIFICAMOS SI EL SWITCH ESTÁ EN RELOJ O EN ALARMA. 
+
+                     133     ;DEPENDIENDO DE ESO LOS REGISTROS DE R3 A R5 SE IRÁN CAMBIANDO CON LOS DATOS
+
+00AA 20B408          134     TRANSISTORES:   JB              RA_SW, ALARMADATA
+
+00AD AB22            135                                     MOV     R3, SS                                  ; MOVER LOS
+                              SS AL R3
+
+00AF AC21            136                                     MOV     R4, MM                                  ; MOVER LOS
+                              MM AL R4
+
+00B1 AD20            137                                     MOV             R5, HH                                  ; M
+                             OVER LAS HH AL R5
+
+00B3 8006            138                                     SJMP    CONTINUE
+
+00B5 AB32            139     ALARMADATA:             MOV     R3, AS                                  ; MOVER LOS AS AL R
+                             3
+
+00B7 AC31            140                                     MOV             R4, AM                                  ; M
+                             OVER LOS AM AL R4
+
+00B9 AD30            141                                     MOV             R5, AH                                  ; M
+                             OVER LOS AH AL R5
+
+00BB C28F            142     CONTINUE:               CLR             TF1                                             ; L
+                             IMPIAR FLAG
+
+00BD 758DB1          143                                     MOV     TH1,#HIGH(-20000)               ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR1 EN H
+
+00C0 758BE0          144                                     MOV     TL1,#LOW(-20000)                ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR1 EN L
+
+00C3 852490          145                                     MOV     P1, TRANS                               ;MANDAR BAR
+                             RIDO A PUERTO 0A
+
+00C6 75F00A          146                                     MOV     B, #10D                                 ; B = 10
+
+00C9 AA24            147                                     MOV     R2, TRANS
+
+00CB BAFE03          148     SEG1:                   CJNE    R2, #11111110B, SEG2    ; TRANSISTOR EN 1
+
+00CE EB              149                                     MOV     A, R3                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00CF 801E            150                                     SJMP    LOWTRANS                                ; TRANSITOR
+                              LOW
+
+00D1 BAFD03          151     SEG2:                   CJNE    R2, #11111101B, SEG3    ; TRANSISTOR EN 2 
+
+00D4 EB              152                                     MOV     A, R3                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00D5 801D            153                                     SJMP    HIGHTRANS                               ; TRANSITOR
+                              LOW
+
+00D7 BAFB03          154     SEG3:                   CJNE    R2, #11111011B, SEG4    ; TRANSISTOR EN 3 
+
+00DA EC              155                                     MOV     A, R4                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00DB 8012            156                                     SJMP    LOWTRANS                                ; TRANSITOR
+                              LOW
+
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     4
+
+00DD BAF703          157     SEG4:                   CJNE    R2, #11110111B, SEG5    ; TRANSISTOR EN 4 
+
+00E0 EC              158                                     MOV     A, R4                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00E1 8011            159                                     SJMP    HIGHTRANS                               ; TRANSITOR
+                              LOW
+
+00E3 BAEF03          160     SEG5:                   CJNE    R2, #11101111B, SEG6    ; TRANSISTOR EN 5 
+
+00E6 ED              161                                     MOV     A, R5                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00E7 8006            162                                     SJMP    LOWTRANS                                ; TRANSITOR
+                              LOW
+
+00E9 BADFDF          163     SEG6:                   CJNE    R2, #11011111B, SEG1    ; TRANSISTOR EN 6
+
+00EC ED              164                                     MOV     A, R5                                   ; MOVER SS 
+                             AL ACUMULADOR 
+
+00ED 8005            165                                     SJMP    HIGHTRANS                               ; TRANSITOR
+                              LOW
+
+                     166                             
+
+00EF 84              167     LOWTRANS:               DIV     AB                                              ; DIVIDIR E
+                             NTRE 10 LO QUE HAY
+
+00F0 E5F0            168                                     MOV     A, B                                    ; MOVER EL 
+                             RESIDUO A A
+
+00F2 8001            169                                     SJMP    GOTABLE                                 ; IR A HIHG
+
+00F4 84              170     HIGHTRANS:              DIV     AB                                              ; DIVIDIR 
+
+00F5 7926            171     GOTABLE:                MOV     R1, #26H
+
+00F7 29              172                                     ADD             A, R1                                   ; E
+                             NCONTRAR A QUE DIRECCIÓN BUSCAR
+
+00F8 F9              173                                     MOV     R1, A
+
+00F9 E7              174                                     MOV     A, @R1                                  ; BUSCAR EN
+                              LA TABLA
+
+00FA F5A0            175                                     MOV             P2, A                                   ; P
+                             ASAR ACC AL P2
+
+00FC E524            176                                     MOV     A, TRANS                                ; TRANSISTO
+                             R AL ACC
+
+00FE B4DF02          177                                     CJNE    A, #11011111B, RLFUN    ; TENEMOS QUE HACER TRES MO
+                             VIMIENTOS
+
+0101 23              178                                     RL              A                                          
+                                  ; MOVER A LA IZQUIERDA
+
+0102 23              179                                     RL              A                                          
+                                  ; MOVER A LA IZQUIERDA
+
+0103 23              180     RLFUN:                  RL              A                                               ; M
+                             OVER A LA IZQUIERDA
+
+0104 F524            181                                     MOV     TRANS, A                                ; ACC AL TR
+                             ANS
+
+0106 32              182                                     RETI
+
+                     183     ;*********************************************
+
+                     184     ;   INICIALIZACIÓN DE VARIABLES               *
+
+                     185     ;*********************************************
+
+0107 75200C          186     INICIALIZACION: MOV     HH,#12D                ; INICIAMOS VALORES EN 0 Y 12 PARA LAS HORAS
+
+010A 752100          187                                     MOV             MM,#00H
+
+010D 752200          188                                     MOV     SS,#00H
+
+0110 753000          189                                     MOV             AH, #00D                                ; I
                              NICIAMOS VALORES EN ALARMA FUERA DEL RANGO
 
-00C4 753100          133                                     MOV             AM, #00H;
+0113 753100          190                                     MOV             AM, #00H                                ;
 
-00C7 753200          134                                     MOV             AS, #00H
+0116 753200          191                                     MOV             AS, #00H
 
-00CA 752300          135                                     MOV             COUNT,#00H
+0119 752300          192                                     MOV             COUNT,#00H
 
-00CD 7526C0          136                                     MOV             CERO, #11000000B
+011C 7526C0          193                                     MOV             CERO, #11000000B
 
-00D0 7527F9          137                                     MOV             UNO, #11111001B
+011F 7527F9          194                                     MOV             UNO, #11111001B
 
-00D3 7528A4          138                                     MOV             DOS, #10100100B
+0122 7528A4          195                                     MOV             DOS, #10100100B
 
-00D6 7529B0          139                                     MOV             TRES, #10110000B
+0125 7529B0          196                                     MOV             TRES, #10110000B
 
-00D9 752A99          140                                     MOV     CUATRO, #10011001B
+0128 752A99          197                                     MOV     CUATRO, #10011001B
 
-00DC 752B92          141                                     MOV             CINCO, #10010010B
+012B 752B92          198                                     MOV             CINCO, #10010010B
 
-00DF 752C82          142                                     MOV     SEIS, #10000010B
+012E 752C82          199                                     MOV     SEIS, #10000010B
 
-00E2 752DF8          143                                     MOV             SIETE, #11111000B
+0131 752DF8          200                                     MOV             SIETE, #11111000B
 
-A51 MACRO ASSEMBLER  REPENTINA                                                            10/17/2017 08:34:50 PAGE     4
+0134 752E80          201                                     MOV             OCHO, #10000000B
 
-00E5 752E80          144                                     MOV             OCHO, #10000000B
+0137 752F98          202                                     MOV             NUEVE, #10011000B 
 
-00E8 752F98          145                                     MOV             NUEVE, #10011000B ;
+013A 7524FE          203                                     MOV     TRANS,#11111110B
 
-00EB 7524FE          146                                     MOV     TRANS,#11111110B
+013D D2B0            204                                     SETB    BUZZER                                  ;DEJA EL BU
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     5
 
-00EE 758C63          147                                     MOV     TH0,#63H                                ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR0 EN H
+                             ZZER EN 1 PARA QUE NO PRENDA
 
-00F1 758ABF          148                                     MOV     TL0,#0BFH                               ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR0 EN L
+013F 758C3C          205                                     MOV     TH0,#HIGH(-49999)               ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR0 EN H
 
-00F4 758D10          149                                     MOV     TH1,#10H                                ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR1 EN H
+0142 758AB1          206                                     MOV     TL0,#LOW(-49999)                ;VALOR DE RECARGA P
+                             ARA EL TEMPORIZADOR0 EN L
 
-00F7 758B60          150                                     MOV     TL1,#60H                                ;VALOR DE R
-                             ECARGA PARA EL TEMPORIZADOR1 EN L
+0145 758DB1          207                                     MOV     TH1,#HIGH(-20000)                               ;VA
+                             LOR DE RECARGA PARA EL TEMPORIZADOR1 EN H
 
-00FA 758920          151                                     MOV     TMOD,#00100000B
+0148 758BE0          208                                     MOV     TL1,#LOW(-20000)                                ;VA
+                             LOR DE RECARGA PARA EL TEMPORIZADOR1 EN L
 
-00FD D28C            152                                     SETB    TR0                                             ;IN
+014B 758901          209                                     MOV     TMOD,#00000001B
+
+014E D28C            210                                     SETB    TR0                                             ;IN
                              ICIALIZA EL TEMPORIZADOR0
 
-00FF D28E            153                                     SETB    TR1                                             ;IN
+0150 D28E            211                                     SETB    TR1                                             ;IN
                              ICIALIZA EL TEMPORIZADOR1
 
-0101 75A88A          154                                     MOV     IE, #8AH                                ;HABILITA I
-                             NTERRUPCIONES DEL TEMPORIZADOR                               
+0152 75A88F          212                                     MOV     IE, #8FH                                ;HABILITA I
+                             NTERRUPCIONES DEL TEMPORIZADOR               
 
-0104 80FE            155                                     SJMP    $                                               ; H
-                             AZ NADA
+0155 D28A            213                                     SETB    IT1                                             ;HA
+                             BILITA FLANCO DE BAJADA DE INTERRUPCIONES EXTERNAS
 
-                     156                                     END
+0157 D288            214                                     SETB    IT0
 
-A51 MACRO ASSEMBLER  REPENTINA                                                            10/17/2017 08:34:50 PAGE     5
+0159 22              215                                     RET
+
+                     216     ;*********************************************
+
+                     217     ;   PRINCIPAL                                            *
+
+                     218     ;*********************************************
+
+015A 3107            219     PRINCIPAL:              ACALL   INICIALIZACION
+
+015C 80FE            220                                     SJMP    $; HAZ NADA
+
+                     221                                     END
+
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     6
 
 SYMBOL TABLE LISTING
 ------ ----- -------
@@ -389,53 +527,72 @@ SYMBOL TABLE LISTING
 N A M E             T Y P E  V A L U E   ATTRIBUTES
 
 AH . . . . . . . .  N NUMB   0030H   A   
-ALARMADATA . . . .  C ADDR   0066H   A   
+ALARMADATA . . . .  C ADDR   00B5H   A   
+ALARMINC_HH. . . .  C ADDR   005DH   A   
+ALARMINC_MM. . . .  C ADDR   003BH   A   
 AM . . . . . . . .  N NUMB   0031H   A   
 AS . . . . . . . .  N NUMB   0032H   A   
 B. . . . . . . . .  D ADDR   00F0H   A   
+BUTTON_HH. . . . .  C ADDR   0049H   A   
+BUTTON_MM. . . . .  C ADDR   0027H   A   
+BUZZER . . . . . .  B ADDR   00B0H.0 A   
+B_HH . . . . . . .  B ADDR   00B0H.3 A   
+B_MM . . . . . . .  B ADDR   00B0H.2 A   
 CERO . . . . . . .  N NUMB   0026H   A   
 CINCO. . . . . . .  N NUMB   002BH   A   
-COMPALARMA . . . .  C ADDR   004EH   A   
-CONTINUE . . . . .  C ADDR   006CH   A   
+COMPALARMA . . . .  C ADDR   009DH   A   
+COMPARATORH. . . .  C ADDR   004EH   A   
+COMPARATORM. . . .  C ADDR   002CH   A   
+CONTINUE . . . . .  C ADDR   00BBH   A   
 COUNT. . . . . . .  N NUMB   0023H   A   
 CUATRO . . . . . .  N NUMB   002AH   A   
+DEBOUNCE_DELAY . .  C ADDR   001EH   A   
 DOS. . . . . . . .  N NUMB   0028H   A   
-FINALRELOJ . . . .  C ADDR   0058H   A   
-GOTABLE. . . . . .  C ADDR   00A6H   A   
+FINALHH. . . . . .  C ADDR   0067H   A   
+FINALMM. . . . . .  C ADDR   0045H   A   
+FINALRELOJ . . . .  C ADDR   00A9H   A   
+GOTABLE. . . . . .  C ADDR   00F5H   A   
 HH . . . . . . . .  N NUMB   0020H   A   
-HIGHTRANS. . . . .  C ADDR   00A5H   A   
+HIGHTRANS. . . . .  C ADDR   00F4H   A   
 IE . . . . . . . .  D ADDR   00A8H   A   
-LOWTRANS . . . . .  C ADDR   00A0H   A   
+INICIALIZACION . .  C ADDR   0107H   A   
+IT0. . . . . . . .  B ADDR   0088H.0 A   
+IT1. . . . . . . .  B ADDR   0088H.2 A   
+LL_DEBOUNCE_DELAY.  C ADDR   0020H   A   
+LOWTRANS . . . . .  C ADDR   00EFH   A   
 MM . . . . . . . .  N NUMB   0021H   A   
 NUEVE. . . . . . .  N NUMB   002FH   A   
 OCHO . . . . . . .  N NUMB   002EH   A   
 P1 . . . . . . . .  D ADDR   0090H   A   
 P2 . . . . . . . .  D ADDR   00A0H   A   
-PRINCIPAL. . . . .  C ADDR   00B8H   A   
-RELOJ. . . . . . .  C ADDR   001EH   A   
-RLFUN. . . . . . .  C ADDR   00B4H   A   
-SEG1 . . . . . . .  C ADDR   007CH   A   
-SEG2 . . . . . . .  C ADDR   0082H   A   
-SEG3 . . . . . . .  C ADDR   0088H   A   
-SEG4 . . . . . . .  C ADDR   008EH   A   
-SEG5 . . . . . . .  C ADDR   0094H   A   
-SEG6 . . . . . . .  C ADDR   009AH   A   
+P3 . . . . . . . .  D ADDR   00B0H   A   
+PRINCIPAL. . . . .  C ADDR   015AH   A   
+RA_SW. . . . . . .  B ADDR   00B0H.4 A   
+RELOJ. . . . . . .  C ADDR   006BH   A   
+RLFUN. . . . . . .  C ADDR   0103H   A   
+SEG1 . . . . . . .  C ADDR   00CBH   A   
+SEG2 . . . . . . .  C ADDR   00D1H   A   
+SEG3 . . . . . . .  C ADDR   00D7H   A   
+SEG4 . . . . . . .  C ADDR   00DDH   A   
+SEG5 . . . . . . .  C ADDR   00E3H   A   
+SEG6 . . . . . . .  C ADDR   00E9H   A   
 SEGM . . . . . . .  N NUMB   0025H   A   
 SEIS . . . . . . .  N NUMB   002CH   A   
 SIETE. . . . . . .  N NUMB   002DH   A   
 SS . . . . . . . .  N NUMB   0022H   A   
-SWITCH . . . . . .  N NUMB   0033H   A   
 TF0. . . . . . . .  B ADDR   0088H.5 A   
 TF1. . . . . . . .  B ADDR   0088H.7 A   
 TH0. . . . . . . .  D ADDR   008CH   A   
 TH1. . . . . . . .  D ADDR   008DH   A   
 TL0. . . . . . . .  D ADDR   008AH   A   
 TL1. . . . . . . .  D ADDR   008BH   A   
+A51 MACRO ASSEMBLER  REPENTINA                                                            10/21/2017 12:38:18 PAGE     7
+
 TMOD . . . . . . .  D ADDR   0089H   A   
 TR0. . . . . . . .  B ADDR   0088H.4 A   
 TR1. . . . . . . .  B ADDR   0088H.6 A   
 TRANS. . . . . . .  N NUMB   0024H   A   
-TRANSISTORES . . .  C ADDR   0059H   A   
+TRANSISTORES . . .  C ADDR   00AAH   A   
 TRES . . . . . . .  N NUMB   0029H   A   
 UNO. . . . . . . .  N NUMB   0027H   A   
 
